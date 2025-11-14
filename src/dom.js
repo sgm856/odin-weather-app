@@ -61,7 +61,7 @@ export const renderActiveDay = (dayInfo) => {
   icon.innerHTML = "";
   const iconDiv = createIcon(convertIconName(dayInfo.icon));
   icon.appendChild(iconDiv);
-  temp.textContent = `Temp: ${dayInfo.temp} F`;
+  temp.textContent = `Avg. Temp: ${dayInfo.temp} F`;
   precip.textContent = `Precip. Chance: ${dayInfo.precipprob}%`;
   wind.textContent = `Wind: ${dayInfo.windspeed} mi/hr`;
   humidity.textContent = `Humidity: ${dayInfo.humidity}%`;
