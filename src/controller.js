@@ -1,16 +1,123 @@
 import * as giphyApi from "./giphyApi";
 import * as visualCrossingApi from "./visualCrossingApi";
-import { Extractor } from "./extractor.js";
+import { extract } from "./dataProcessor.js";
+import * as dom from "./dom.js";
+import { setDays, getDays } from "./smallStorage.js";
 
-export const initialize = () => {
+export const initialize = async () => {
   attachSearchHandler();
+  attachDayButtonHandler();
+  await getAndDisplayWeekInfo();
+  displayActiveDay();
+  updateGif();
 };
 
-const attachSearchHandler = () => {
+const attachSearchHandler = async () => {
   const searchButton = document.querySelector(".search-button");
   const inputElement = document.querySelector("form input");
-  searchButton.addEventListener("click", (e) => {
+  searchButton.addEventListener("click", async (e) => {
     e.preventDefault();
-    visualCrossingApi.getForecast(inputElement.value);
+    await getAndDisplayWeekInfo(inputElement.value);
+    displayActiveDay();
+    updateGif();
   });
 };
+
+const attachDayButtonHandler = () => {
+  const buttonContainer = document.querySelector(".week-container");
+  buttonContainer.addEventListener("click", (e) => {
+    if (e.target.closest(".day-container")) {
+      const index = e.target.closest(".day-container").dataset.id;
+      displayActiveDay(Number.parseInt(index));
+      updateGif();
+    }
+  });
+};
+
+const getWeatherDefaultSchema = async (location) => {
+  try {
+    let data = null;
+    data = await visualCrossingApi.getWeeklyData(location);
+    const schema = {
+      days: [
+        "datetime",
+        "icon",
+        "temp",
+        "conditions",
+        "precipprob",
+        "humidity",
+        "feelslike",
+        "windspeed",
+        "description",
+      ],
+      resolvedAddress: "resolvedAddress",
+    };
+    const requestedData = extract(data, schema);
+    setDays(requestedData.days);
+    return requestedData;
+  } catch {
+    console.log(new Error("Failed to fetch information."));
+  }
+};
+
+const getAndDisplayWeekInfo = async (location = null) => {
+  const displayLocation = location || "Albuquerque, New Mexico, United States";
+  const data = await getWeatherDefaultSchema(displayLocation);
+  const resolvedLocation = data.resolvedAddress;
+  dom.populateDays(data.days);
+  dom.renderLocationName(resolvedLocation);
+  console.log(resolvedLocation);
+};
+
+const displayActiveDay = (index = 0) => {
+  const days = getDays();
+  dom.renderActiveDay(days[index]);
+};
+
+const updateGif = (index = 0) => {
+  const days = getDays();
+  giphyApi
+    .getIconGifJson(`${days[index].conditions} weather`)
+    .then((response) => {
+      dom.renderGiphyGif(response.data.images.original.url);
+    });
+};
+
+// const imageContainer = document.querySelector("img");
+// const url =
+//   "https://api.giphy.com/v1/gifs/translate?api_key=Cq8RYy4dsf3ksD7yEOJKT83AuPvhx2sR&s=british";
+// fetch(url)
+//   .then((response) => {
+//     return response.json();
+//   })
+//   .then((response) => {
+//     imageContainer.src = response.data.images.original.url;
+//   });
+// const button = document.querySelector("button");
+// button.addEventListener("click", () => {
+//   const url =
+//     "https://api.giphy.com/v1/gifs/random?api_key=Cq8RYy4dsf3ksD7yEOJKT83AuPvhx2sR";
+//   fetch(url)
+//     .then((response) => {
+//       return response.json();
+//     })
+//     .then((response) => {
+//       imageContainer.src = response.data.images.original.url;
+//     });
+// });
+// const form = document.querySelector("form");
+// const searchBar = document.querySelector("input");
+// form.addEventListener("submit", (e) => {
+//   e.preventDefault();
+//   let url =
+//     "https://api.giphy.com/v1/gifs/translate?api_key=Cq8RYy4dsf3ksD7yEOJKT83AuPvhx2sR&s=";
+//   const userInput = searchBar.value;
+//   url = url.concat("", userInput);
+//   fetch(url)
+//     .then((response) => {
+//       return response.json();
+//     })
+//     .then((response) => {
+//       imageContainer.src = response.data.images.original.url;
+//     });
+// });
